@@ -2,7 +2,6 @@ from django.contrib import admin
 from django.utils.safestring import mark_safe
 from .models import Category, Brand, Tag, Weight, Product, ProductImage, Showcase
 
-# --- Inlines ---
 
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
@@ -15,13 +14,8 @@ class ProductImageInline(admin.TabularInline):
             return mark_safe(f'<img src="{obj.image.url}" width="80" height="80" style="object-fit: cover; border-radius: 5px;" />')
         return "No Image"
 
-# --- Main Model Admins ---
-
 @admin.register(Showcase)
 class ShowcaseAdmin(admin.ModelAdmin):
-    """
-    Admin for independent marketing/lifestyle assets.
-    """
     list_display = ('showcase_preview', 'title', 'is_active', 'order')
     list_editable = ('is_active', 'order')
     list_filter = ('is_active',)
@@ -39,16 +33,28 @@ class ShowcaseAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('get_main_image', 'title', 'category', 'price', 'is_popular', 'is_hot_deal')
-    list_filter = ('category', 'brand', 'is_popular', 'is_hot_deal')
+    list_display = (
+        'get_main_image', 'title', 'category', 'price', 
+        'is_best_seller', 'sold_count', 'total_stock', 'discount_display'
+    )
+    
+    list_editable = ('is_best_seller', 'sold_count', 'total_stock')
+    list_filter = ('category', 'brand', 'is_popular', 'is_hot_deal', 'is_best_seller')
     search_fields = ('title', 'description')
+    prepopulated_fields = {"slug": ("title",)}
     
     inlines = [ProductImageInline]
     
-    fields = (
-        'title', 'description', 'price', 'old_price', 
-        'category', 'brand', 'weight', 'tags', 
-        'is_popular', 'is_hot_deal'
+    fieldsets = (
+        ('General Information', {
+            'fields': ('title', 'slug', 'description', 'category', 'brand', 'weight', 'tags')
+        }),
+        ('Pricing & Inventory', {
+            'fields': ('price', 'old_price', 'total_stock', 'sold_count')
+        }),
+        ('Status & Promotions', {
+            'fields': ('is_popular', 'is_hot_deal', 'is_best_seller')
+        }),
     )
 
     def get_main_image(self, obj):
@@ -59,14 +65,19 @@ class ProductAdmin(admin.ModelAdmin):
     
     get_main_image.short_description = 'Preview'
 
+    def discount_display(self, obj):
+        if obj.discount_percentage > 0:
+            return mark_safe(f'<b style="color: #3BB77E;">{obj.discount_percentage}% Off</b>')
+        return "No Discount"
+    discount_display.short_description = 'Savings'
+
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related('images')
 
-# --- Helper Model Admins ---
-
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('category_image', 'name')
+    list_display = ('category_image', 'name', 'slug')
+    prepopulated_fields = {"slug": ("name",)}
     
     def category_image(self, obj):
         if obj.image:
