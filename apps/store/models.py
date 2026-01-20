@@ -1,8 +1,16 @@
 from django.db import models
+from django.utils.text import slugify
 
 class Category(models.Model):
     name = models.CharField(max_length=50)
+    slug = models.SlugField(unique=True, null=True, blank=True)
     image = models.ImageField(upload_to='categories/', null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
     def __str__(self): return self.name
 
 class Brand(models.Model):
@@ -20,6 +28,7 @@ class Weight(models.Model):
 
 class Product(models.Model):
     title = models.CharField(max_length=255)
+    slug = models.SlugField(unique=True, null=True, blank=True)
     description = models.TextField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
     old_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
@@ -29,9 +38,28 @@ class Product(models.Model):
     tags = models.ManyToManyField(Tag, blank=True)
     is_popular = models.BooleanField(default=False)
     is_hot_deal = models.BooleanField(default=False)
+    is_best_seller = models.BooleanField(default=False) 
+    total_stock = models.PositiveIntegerField(default=100) 
+    sold_count = models.PositiveIntegerField(default=0)    
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.title)
+        super().save(*args, **kwargs)
+
     def __str__(self): return self.title
+
+    @property
+    def stock_available(self):
+        return max(0, self.total_stock - self.sold_count)
+
+    @property
+    def discount_percentage(self):
+        if self.old_price and self.old_price > self.price:
+            discount = ((self.old_price - self.price) / self.old_price) * 100
+            return round(discount)
+        return 0
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
