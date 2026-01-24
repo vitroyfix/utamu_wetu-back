@@ -27,13 +27,37 @@ class Weight(models.Model):
     def __str__(self): return f"{self.value} {self.unit}"
 
 class Product(models.Model):
+    # 1) Product Identity (Core Data)
     title = models.CharField(max_length=255)
     slug = models.SlugField(unique=True, null=True, blank=True)
-    description = models.TextField()
-    price = models.DecimalField(max_digits=10, decimal_places=2)
-    old_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    sku = models.CharField(max_length=50, unique=True, null=True, help_text="Product ID (SKU)")
+    barcode = models.CharField(max_length=13, null=True, blank=True, help_text="EAN/Barcode")
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     brand = models.ForeignKey(Brand, on_delete=models.SET_NULL, null=True)
+    subcategory = models.CharField(max_length=100, null=True, blank=True)
+    product_type = models.CharField(max_length=100, null=True, blank=True, help_text="e.g. Perishable beverage")
+    
+    # 2) Commercial Information
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    old_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    packaging_type = models.CharField(max_length=100, null=True, blank=True, help_text="e.g. Carton")
+    min_order = models.PositiveIntegerField(default=1)
+    max_order = models.PositiveIntegerField(default=12, help_text="Value in units (Logic will convert to Dozens in Frontend)")
+    packaging_image = models.ImageField(upload_to='products/technical/', null=True, blank=True, help_text="Visual brand & size verification image.")
+    nutrition_image = models.ImageField(upload_to='products/technical/', null=True, blank=True, help_text="Verified facts & certifications image.")
+    description = models.TextField(help_text="Detailed explanation of origin, processing, and use.")
+    ingredients = models.TextField(null=True, blank=True)
+    nutritional_info = models.TextField(null=True, blank=True, help_text="Enter nutrition facts as plain text.")
+    storage_instructions = models.TextField(null=True, blank=True)
+    shelf_life = models.CharField(max_length=100, null=True, blank=True)
+    expiry_info = models.CharField(max_length=255, null=True, blank=True, help_text="e.g. Printed on package")
+    country_of_origin = models.CharField(max_length=100, default="Kenya")
+    allergens = models.TextField(null=True, blank=True, help_text="e.g. Contains Milk")
+    manufacturer = models.CharField(max_length=200, null=True, blank=True)
+    processing_method = models.CharField(max_length=100, null=True, blank=True, help_text="e.g. Pasteurized")
+    quality_certification = models.CharField(max_length=200, default="KEBS certified")
+    requires_cold_transport = models.BooleanField(default=False)
+    same_day_delivery = models.BooleanField(default=True)
     weight = models.ForeignKey(Weight, on_delete=models.SET_NULL, null=True, related_name='products')
     tags = models.ManyToManyField(Tag, blank=True)
     is_popular = models.BooleanField(default=False)
@@ -62,9 +86,13 @@ class Product(models.Model):
         return 0
 
 class ProductImage(models.Model):
+    """Standard gallery images for the top slider."""
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
     image = models.ImageField(upload_to='products/gallery/')
     alt_text = models.CharField(max_length=255, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.product.title} - Gallery Image"
 
 class Showcase(models.Model):
     title = models.CharField(max_length=100, help_text="e.g., Summer Refreshments")
