@@ -49,13 +49,41 @@ class ProductAdmin(admin.ModelAdmin):
         ('General Information', {
             'fields': ('title', 'slug', 'description', 'category', 'brand', 'weight', 'tags')
         }),
-        ('Pricing & Inventory', {
-            'fields': ('price', 'old_price', 'total_stock', 'sold_count')
+        ('Product Identity (Core Data)', {
+            'fields': ('sku', 'barcode', 'product_type')
+        }),
+        ('Commercial Information', {
+            'fields': ('price', 'old_price', 'packaging_type', 'total_stock', 'sold_count', 'min_order', 'max_order')
+        }),
+        ('Technical Visuals (Guaranteed Placement)', {
+            # These fields are direct slots. Upload here to show in technical sections.
+            'fields': ('packaging_image', 'nutrition_image', 'technical_preview')
+        }),
+        ('Grocery Content & Nutrition', {
+            'fields': ('ingredients', 'nutritional_info', 'allergens')
+        }),
+        ('Storage, Life & Origin', {
+            'fields': ('storage_instructions', 'shelf_life', 'country_of_origin')
+        }),
+        ('Manufacturing & Logistics', {
+            'fields': ('manufacturer', 'processing_method', 'quality_certification', 'requires_cold_transport', 'same_day_delivery')
         }),
         ('Status & Promotions', {
             'fields': ('is_popular', 'is_hot_deal', 'is_best_seller')
         }),
     )
+
+    readonly_fields = ('technical_preview',)
+
+    def technical_preview(self, obj):
+        """Shows you exactly what is uploaded in the technical slots."""
+        html = '<div style="display: flex; gap: 20px;">'
+        if obj.packaging_image:
+            html += f'<div><p><b>Packaging:</b></p><img src="{obj.packaging_image.url}" width="100" /></div>'
+        if obj.nutrition_image:
+            html += f'<div><p><b>Nutrition:</b></p><img src="{obj.nutrition_image.url}" width="100" /></div>'
+        html += '</div>'
+        return mark_safe(html) if (obj.packaging_image or obj.nutrition_image) else "No technical images uploaded."
 
     def get_main_image(self, obj):
         first_image = obj.images.first()
