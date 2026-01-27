@@ -135,7 +135,7 @@ class Query(graphene.ObjectType):
     def resolve_all_showcases(root, info):
         return Showcase.objects.filter(is_active=True).order_by('order')
 
-       def resolve_popular_products(root, info, category_name=None, tag_name=None, min_price=None, max_price=None):
+    def resolve_popular_products(root, info, category_name=None, tag_name=None, min_price=None, max_price=None):
         queryset = Product.objects.select_related('weight', 'brand', 'category').filter(is_popular=True)
         
         if category_name and category_name != "All":
