@@ -41,7 +41,8 @@ INSTALLED_APPS = [
     'graphene_django',
     'corsheaders',
     'apps.store',
-    'apps.users'
+    'apps.users',
+    'apps.orders'
 ]
 
 MIDDLEWARE = [
