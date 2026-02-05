@@ -1,5 +1,37 @@
+<<<<<<< Updated upstream
 venv
 __pycache__
 *.pyc
 .git
 .env
+=======
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+venv/
+env/
+.venv/
+
+# Django
+db.sqlite3
+db.sqlite3-journal
+/media/
+/staticfiles/
+*.log
+
+.env
+.env.local
+.env.*.local
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# Docker
+postgres_data/
+>>>>>>> Stashed changes

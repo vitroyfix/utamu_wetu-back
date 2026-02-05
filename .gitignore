@@ -1,0 +1,26 @@
+# Python & Bytecode
+__pycache__/
+*.py[cod]
+
+# Virtual Environments
+venv/
+.venv/
+env/
+
+# Environment Variables (CRITICAL)
+.env
+.env.*
+
+# Django Specific
+db.sqlite3
+/media/
+/staticfiles/
+*.log
+
+# Database
+postgres_data/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
