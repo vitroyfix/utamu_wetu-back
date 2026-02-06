@@ -1,7 +1,10 @@
+version: '3.8'
+
 services:
   db:
     image: postgres:15
     container_name: utamu_db
+    restart: always
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     environment:
@@ -10,9 +13,13 @@ services:
       - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER} -d ${DATABASE_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   # 1. LOCAL DEVELOPMENT SERVICE
-  # Use this for coding (hot-reload enabled)
   web-local:
     build: .
     command: python manage.py runserver 0.0.0.0:8000
@@ -24,23 +31,25 @@ services:
     env_file:
       - .env
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
-  # 2. RENDER TEST SERVICE
-  # Use this to see if Render will actually work (Gunicorn + Port 10000)
+  # 2. RENDER TEST SERVICE (Mirroring Production)
   web-render-test:
     build: .
-    # Overriding the Dockerfile CMD to ensure it uses Render's specific port
+    # Using Gunicorn to simulate the real Render environment
     command: gunicorn core.wsgi:application --bind 0.0.0.0:10000
     environment:
       - PORT=10000
-      - DATABASE_URL=postgres://${DATABASE_USER}:${DATABASE_PASSWORD}@db:5432/${DATABASE_NAME}
+      - DATABASE_URL=${DATABASE_URL}
+      - DEBUG=False
     ports:
       - "10000:10000"
     env_file:
       - .env
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
 volumes:
   postgres_data:

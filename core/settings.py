@@ -71,19 +71,55 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'core.wsgi.application'
+# core/settings.py
 
-# --- DATABASE (Supabase) ---
-DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL'),
-        conn_max_age=600,
-        ssl_require=True
-    )
-}
+# core/settings.py
 
-# --- STATIC & MEDIA FILES ---
+# --- DATABASE CONFIGURATION (Render/Supabase & Docker Compatible) ---
+# This configuration handles seamless transitions between:
+# - Local Docker (db service, no SSL)
+# - Render/Supabase (remote host, SSL required)
+
+db_url = os.environ.get('DATABASE_URL', '').strip()
+
+if db_url:
+    # Parse the DATABASE_URL for production/docker environments
+    parsed_db = dj_database_url.config(default=db_url, conn_max_age=600)
+    
+    # Determine SSL requirement based on environment
+    # Local/Docker environments don't require SSL
+    is_local_or_docker = any(host in db_url for host in ['db', '127.0.0.1', 'localhost'])
+    if is_local_or_docker:
+        # Remove SSL for local development
+        parsed_db['OPTIONS'] = parsed_db.get('OPTIONS', {})
+        parsed_db['OPTIONS'].pop('sslmode', None)
+        parsed_db['OPTIONS']['sslmode'] = 'disable'
+    else:
+        # Enforce SSL for Render/Supabase in production
+        parsed_db['OPTIONS'] = parsed_db.get('OPTIONS', {})
+        parsed_db['OPTIONS']['sslmode'] = 'require'
+    
+    DATABASES = {'default': parsed_db}
+else:
+    # Fallback for development without DATABASE_URL
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('DATABASE_NAME', 'utamu_db'),
+            'USER': os.environ.get('DATABASE_USER', 'postgres'),
+            'PASSWORD': os.environ.get('DATABASE_PASSWORD', ''),
+            'HOST': os.environ.get('DATABASE_HOST', 'db'),
+            'PORT': os.environ.get('DATABASE_PORT', '5432'),
+            'CONN_MAX_AGE': 600,
+            'OPTIONS': {'sslmode': 'disable'},
+        }
+    }
+# --- STATIC & MEDIA FILES (Django 4.2+ with Render & Cloudinary Support) ---
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Ensure staticfiles directory exists for Whitenoise
+os.makedirs(STATIC_ROOT, exist_ok=True)
 
 # Cloudinary Config (Used by cloudinary_storage)
 CLOUDINARY_STORAGE = {
@@ -92,17 +128,31 @@ CLOUDINARY_STORAGE = {
     'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
 }
 
-# Unified Storage (Django 4.2+)
+# Determine which storage backend to use based on Cloudinary availability
+HAS_CLOUDINARY = bool(os.environ.get('CLOUDINARY_CLOUD_NAME'))
+
+# Django 4.2+ STORAGES API (New Standard)
 STORAGES = {
     "default": {
-        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage"
+        if HAS_CLOUDINARY
+        else "django.core.files.storage.FileSystemStorage",
+        "OPTIONS": {} if HAS_CLOUDINARY else {"location": os.path.join(BASE_DIR, 'media')},
     },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
     },
 }
 
+# Backward Compatibility: cloudinary_storage library expects STATICFILES_STORAGE
+# This prevents AttributeError in third-party packages using the old API
+STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
+
+# Media files configuration
 MEDIA_URL = '/media/'
+if not HAS_CLOUDINARY:
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+    os.makedirs(MEDIA_ROOT, exist_ok=True)
 
 # --- CORS & CSRF (Next.js & Prod Security) ---
 CORS_ALLOW_ALL_ORIGINS = DEBUG

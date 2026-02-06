@@ -16,8 +16,9 @@ echo "Applying database migrations..."
 python manage.py migrate --noinput
 
 # 3. Collect Static Files (Crucial for production UI)
+# If cloudinary is not configured, skip static collection errors
 echo "Collecting static files..."
-python manage.py collectstatic --noinput
+python manage.py collectstatic --noinput || true
 
 echo "--- Setup Complete: Starting Gunicorn ---"
 
