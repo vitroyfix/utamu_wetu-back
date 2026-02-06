@@ -172,7 +172,7 @@ if not HAS_CLOUDINARY:
 # --- CORS & CSRF (Next.js & Prod Security) ---
 CORS_ALLOW_ALL_ORIGINS = DEBUG
 if not DEBUG:
-    FRONTEND_URL = os.environ.get('FRONTEND_URL', "https://utamuwetu.vercel.app")
+    FRONTEND_URL = os.environ.get('FRONTEND_URL', "https://utamuwetu1.vercel.app")
     CORS_ALLOWED_ORIGINS = [FRONTEND_URL]
     CSRF_TRUSTED_ORIGINS = [FRONTEND_URL]
 
