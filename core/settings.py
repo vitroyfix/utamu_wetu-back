@@ -1,24 +1,31 @@
 """
 Django settings for core project.
-Optimized for Utamu Wetu - Local & Production Ready.
+Optimized for Utamu Wetu - Supabase & Cloudinary & Render Ready.
 """
 import os
 import sys
 from pathlib import Path
 import dj_database_url
-import cloudinary  # Added explicit import to prevent configuration issues
+import cloudinary
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Adds 'apps' folder to path for cleaner imports
 sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
 
 # --- SECURITY ---
 SECRET_KEY = os.environ.get('SECRET_KEY', 'fallback-key-for-dev-only')
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+
+# Required for Render HTTPS/CSRF protection
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 # --- APPS ---
 INSTALLED_APPS = [
+    'cloudinary_storage', # CRITICAL: Must be above staticfiles
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -27,7 +34,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'graphene_django',
     'corsheaders',
-    'cloudinary_storage', # Required for Cloudinary media
     'cloudinary',
     'apps.store',
     'apps.users',
@@ -36,9 +42,9 @@ INSTALLED_APPS = [
 
 # --- MIDDLEWARE ---
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  # Top priority for CORS
+    'corsheaders.middleware.CorsMiddleware', # Top priority
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware', # For serving static files
+    'whitenoise.middleware.WhiteNoiseMiddleware', # Static files after security
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -66,63 +72,49 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
-# --- DATABASE ---
-if os.environ.get('DATABASE_URL'):
-    DATABASES = {
-        'default': dj_database_url.config(conn_max_age=600, ssl_require=True)
-    }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.environ.get('DATABASE_NAME', 'utamu_db'),
-            'USER': os.environ.get('DATABASE_USER', 'peter'),
-            'PASSWORD': os.environ.get('DATABASE_PASSWORD', ''),
-            'HOST': os.environ.get('DATABASE_HOST', 'db'),
-            'PORT': os.environ.get('DATABASE_PORT', '5432'),
-        }
-    }
+# --- DATABASE (Supabase) ---
+DATABASES = {
+    'default': dj_database_url.config(
+        default=os.environ.get('DATABASE_URL'),
+        conn_max_age=600,
+        ssl_require=True
+    )
+}
 
 # --- STATIC & MEDIA FILES ---
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# Media logic (Local vs Cloudinary)
-CLOUDINARY_NAME = os.environ.get('CLOUDINARY_CLOUD_NAME')
+# Cloudinary Config (Used by cloudinary_storage)
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
+}
 
-if CLOUDINARY_NAME:
-    cloudinary.config(
-        cloud_name=CLOUDINARY_NAME,
-        api_key=os.environ.get('CLOUDINARY_API_KEY'),
-        api_secret=os.environ.get('CLOUDINARY_API_SECRET'),
-        secure=True
-    )
-    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-else:
-    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-MEDIA_URL = '/media/'
-
-# Static storage with WhiteNoise
+# Unified Storage (Django 4.2+)
 STORAGES = {
     "default": {
-        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage" if CLOUDINARY_NAME else "django.core.files.storage.FileSystemStorage",
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
     },
 }
 
-# --- CORS ---
+MEDIA_URL = '/media/'
+
+# --- CORS & CSRF (Next.js & Prod Security) ---
 CORS_ALLOW_ALL_ORIGINS = DEBUG
 if not DEBUG:
-    CORS_ALLOWED_ORIGINS = [os.environ.get('FRONTEND_URL', "https://utamuwetu.vercel.app")]
+    FRONTEND_URL = os.environ.get('FRONTEND_URL', "https://utamuwetu.vercel.app")
+    CORS_ALLOWED_ORIGINS = [FRONTEND_URL]
+    CSRF_TRUSTED_ORIGINS = [FRONTEND_URL]
 
-# Fix for 400 Bad Request: Explicitly allow the Authorization header
 CORS_ALLOW_HEADERS = [
     'accept',
     'accept-encoding',
-    'authorization',  # Critical for JWT
+    'authorization', 
     'content-type',
     'dnt',
     'origin',
