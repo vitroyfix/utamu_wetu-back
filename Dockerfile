@@ -14,16 +14,19 @@ RUN apt-get update && apt-get install -y \
 
 # Install Python dependencies
 COPY requirements.txt /app/
-RUN pip install --upgrade pip && pip install -r requirements.txt
+RUN pip install --upgrade pip
+# Using --no-cache-dir to force a fresh download from PyPI
+RUN pip install --no-cache-dir -r requirements.txt
+
+# DEBUG: This will print installed packages to your Render logs
+RUN pip list
 
 # Copy project files
 COPY . /app/
 
-# NEW: Add entrypoint script to handle migrations and superuser
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
 
-# Run with Gunicorn instead of runserver for production
 CMD gunicorn core.wsgi:application --bind 0.0.0.0:$PORT
