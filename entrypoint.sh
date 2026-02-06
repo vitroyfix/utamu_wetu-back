@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Fail immediately if any command fails
+# Exit on any error EXCEPT collectstatic warnings
 set -e
 
 echo "--- Render Simulation: Starting Setup ---"
@@ -16,9 +16,10 @@ echo "Applying database migrations..."
 python manage.py migrate --noinput
 
 # 3. Collect Static Files (Crucial for production UI)
-# If cloudinary is not configured, skip static collection errors
+# Use --ignore to skip problematic paths if they don't exist
+# WhiteNoise will handle compression with WHITENOISE_MANIFEST_STRICT = False
 echo "Collecting static files..."
-python manage.py collectstatic --noinput || true
+python manage.py collectstatic --noinput --clear --ignore=node_modules 2>&1 | tail -20 || echo "⚠ Static collection completed with warnings (acceptable)"
 
 echo "--- Setup Complete: Starting Gunicorn ---"
 

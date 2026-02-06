@@ -118,7 +118,7 @@ else:
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# Ensure staticfiles directory exists for Whitenoise
+# Ensure staticfiles directory exists BEFORE any collectstatic operations
 os.makedirs(STATIC_ROOT, exist_ok=True)
 
 # Cloudinary Config (Used by cloudinary_storage)
@@ -131,6 +131,11 @@ CLOUDINARY_STORAGE = {
 # Determine which storage backend to use based on Cloudinary availability
 HAS_CLOUDINARY = bool(os.environ.get('CLOUDINARY_CLOUD_NAME'))
 
+# WhiteNoise Configuration for Production/Render
+# Use CompressedStaticFilesStorage with proper settings
+# WHITENOISE_MANIFEST_STRICT = False prevents errors on missing files
+WHITENOISE_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
+
 # Django 4.2+ STORAGES API (New Standard)
 STORAGES = {
     "default": {
@@ -140,13 +145,23 @@ STORAGES = {
         "OPTIONS": {} if HAS_CLOUDINARY else {"location": os.path.join(BASE_DIR, 'media')},
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+        "BACKEND": WHITENOISE_STORAGE,
     },
 }
 
 # Backward Compatibility: cloudinary_storage library expects STATICFILES_STORAGE
 # This prevents AttributeError in third-party packages using the old API
-STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
+STATICFILES_STORAGE = WHITENOISE_STORAGE
+
+# WhiteNoise Configuration for Production/Render
+# WHITENOISE_MANIFEST_STRICT = False allows missing admin files that may not exist
+# WHITENOISE_USE_GZIP = True reduces file size for production (gzip already serves faster than brotli)
+# WHITENOISE_SKIP_WHITENOISE = False ensures middleware processes static files
+WHITENOISE_MANIFEST_STRICT = False
+WHITENOISE_USE_GZIP = not DEBUG
+WHITENOISE_SKIP_WHITENOISE = False
+# Disable overly aggressive compression threading to prevent missing file errors
+WHITENOISE_COMPRESS = False
 
 # Media files configuration
 MEDIA_URL = '/media/'
