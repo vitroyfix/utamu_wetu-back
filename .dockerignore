@@ -2,64 +2,32 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
-# Virtual Environments
-venv/
-env/
-.venv/
-
-# Django
-db.sqlite3
-db.sqlite3-journal
-/media/
-/staticfiles/
-*.log
-
-# Environment Variables (Keep these secret)
-.env
-.env.local
-.env.*.local
-
-# IDE & OS
-.vscode/
-.idea/
-.DS_Store
-*.swp
-
-# Docker
-postgres_data/
-
-# Project Specific
-*.pyc# Python
-__pycache__/
-*.py[cod]
-*$py.class
-
-# Virtual Environments
-venv/
-env/
-.venv/
-
-# Django
-db.sqlite3
-db.sqlite3-journal
-/media/
-/staticfiles/
-*.log
-
-# Environment Variables (Keep these secret)
-.env
-.env.local
-.env.*.local
-
-# IDE & OS
-.vscode/
-.idea/
-.DS_Store
-*.swp
-
-# Docker
-postgres_data/
-
-# Project Specific
 *.pyc
+
+# Virtual Environments
+venv/
+env/
+.venv/
+ENV/
+
+# Environment Variables (CRITICAL: NAMED EXACTLY .env)
+.env
+.env.local
+.env.*.local
+
+# Django
+db.sqlite3
+db.sqlite3-journal
+/media/
+/staticfiles/
+staticfiles/
+*.log
+
+# Docker
+postgres_data/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
